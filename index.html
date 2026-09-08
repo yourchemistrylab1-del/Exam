@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YCL Mock Test Platform — NEET (UG)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<canvas id="starfield-canvas" aria-hidden="true"></canvas>
+<canvas id="confetti-canvas" aria-hidden="true"></canvas>
+<div id="toast-stack" class="toast-stack" aria-live="polite"></div>
+
+<!-- ============================================================
+     SCREEN 0 — LOGIN
+     ============================================================ -->
+<section id="screen-login" class="screen screen--active">
+  <div class="login-shell">
+    <div class="login-mark">
+      <span class="brand-badge brand-badge--lg">
+        <img src="logo1.png" alt="YCL" class="brand-badge-logo">
+        <img src="logo2.png" alt="YCL Faculty" class="brand-badge-photo">
+      </span>
+      <span class="mark-text">YCL</span>
+    </div>
+
+    <div class="login-card panel">
+      <p class="eyebrow">Invigilated session</p>
+      <h1 id="login-exam-name" class="login-title">Full Syllabus Test</h1>
+      <p class="login-sub">Enter your test credentials to begin. This session is for one device, in front of your instructor, single attempt only.</p>
+
+      <div class="field">
+        <label for="input-id">Student ID</label>
+        <input id="input-id" type="text" autocomplete="off" placeholder="e.g. YCLR2027" />
+      </div>
+      <div class="field">
+        <label for="input-password">Password</label>
+        <input id="input-password" type="password" autocomplete="off" placeholder="Enter access password" />
+      </div>
+      <div class="field">
+        <label for="input-name">Full Name</label>
+        <input id="input-name" type="text" autocomplete="off" placeholder="As per admit card" />
+      </div>
+
+      <div id="login-error" class="login-error" hidden></div>
+
+      <button id="btn-login-continue" class="btn btn--primary btn--block">Continue to instructions →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SCREEN 1 — INSTRUCTIONS
+     ============================================================ -->
+<section id="screen-instructions" class="screen">
+  <div class="instr-shell panel">
+    <p class="eyebrow">Before you begin</p>
+    <h1 class="instr-title">Rules &amp; marking scheme</h1>
+
+    <div class="instr-grid">
+      <div class="instr-block">
+        <h3>Marking scheme</h3>
+        <ul class="instr-list">
+          <li><span class="tag tag--green">+<span id="marks-correct-val">4</span></span> for each correct answer</li>
+          <li><span class="tag tag--red" id="marks-incorrect-val">−1</span> for each incorrect answer</li>
+          <li><span class="tag tag--muted">0</span> for unattempted questions</li>
+        </ul>
+      </div>
+      <div class="instr-block">
+        <h3>Session rules</h3>
+        <ul class="instr-list instr-list--plain">
+          <li>The test runs in full-screen mode for the entire duration.</li>
+          <li>Switching tabs, exiting full-screen, or using copy/paste is logged as a violation.</li>
+          <li>After <strong id="max-violations-val">3</strong> flagged events, the test auto-submits.</li>
+          <li>Once submitted, this ID cannot log in again for this test.</li>
+          <li>Your progress auto-saves — a refresh or crash will not erase your answers.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="instr-palette-legend">
+      <h3>Question palette, at a glance</h3>
+      <div class="legend-row">
+        <div class="legend-item"><span class="qbtn-swatch qs-notvisited"></span>Not visited</div>
+        <div class="legend-item"><span class="qbtn-swatch qs-notanswered"></span>Not answered</div>
+        <div class="legend-item"><span class="qbtn-swatch qs-answered"></span>Answered</div>
+        <div class="legend-item"><span class="qbtn-swatch qs-marked"></span>Marked for review</div>
+        <div class="legend-item"><span class="qbtn-swatch qs-markedans"></span>Answered &amp; marked</div>
+      </div>
+    </div>
+
+    <div class="instr-palette-legend">
+      <h3>While you're in the test</h3>
+      <div class="legend-row">
+        <div class="legend-item"><kbd>1</kbd>–<kbd>4</kbd> to pick an option, <kbd>&rarr;</kbd> to move on</div>
+        <div class="legend-item">A− / A+ in the top bar resizes question text</div>
+      </div>
+    </div>
+
+    <label class="agree-row">
+      <input type="checkbox" id="chk-agree">
+      <span>I have read the rules above and I'm ready to begin in full-screen mode.</span>
+    </label>
+
+    <button id="btn-start-exam" class="btn btn--primary btn--block" disabled>Enter full-screen &amp; start test</button>
+  </div>
+</section>
+
+<!-- ============================================================
+     SCREEN 2 — EXAM
+     ============================================================ -->
+<section id="screen-exam" class="screen">
+  <header class="exam-topbar">
+    <div class="topbar-left">
+      <span class="brand-badge brand-badge--sm">
+        <img src="logo1.png" alt="YCL" class="brand-badge-logo">
+        <img src="logo2.png" alt="YCL Faculty" class="brand-badge-photo">
+      </span>
+      <div class="topbar-id">
+        <span id="exam-student-name">—</span>
+        <span id="exam-student-id" class="topbar-id-sub">—</span>
+      </div>
+    </div>
+
+    <nav class="subject-tabs" id="subject-tabs"></nav>
+
+    <div class="topbar-right">
+      <div class="text-size-control" role="group" aria-label="Question text size">
+        <button id="btn-font-dec" class="ts-btn" type="button" aria-label="Decrease text size">A−</button>
+        <button id="btn-font-inc" class="ts-btn" type="button" aria-label="Increase text size">A+</button>
+      </div>
+      <button id="btn-shortcuts" class="ts-btn ts-btn--wide" type="button" aria-haspopup="true" aria-expanded="false">⌨ Shortcuts</button>
+      <div class="violation-indicator" id="violation-indicator" title="Flagged events">
+        <span class="vi-dot"></span>
+        <span id="violation-count">0</span>/<span id="violation-max">3</span>
+      </div>
+      <div class="timer-chip" id="timer-chip">
+        <span class="timer-icon">⏱</span>
+        <span id="timer-display">45:00</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="exam-progress-track" aria-hidden="true">
+    <div class="exam-progress-fill" id="exam-progress-fill"></div>
+  </div>
+
+  <div id="shortcuts-panel" class="shortcuts-panel" hidden>
+    <div class="shortcuts-panel-inner panel">
+      <span><kbd>1</kbd>–<kbd>4</kbd> select option</span>
+      <span><kbd>&larr;</kbd> previous</span>
+      <span><kbd>&rarr;</kbd> / <kbd>Enter</kbd> save &amp; next</span>
+      <span><kbd>M</kbd> mark for review</span>
+      <span><kbd>C</kbd> clear response</span>
+    </div>
+  </div>
+
+  <div class="exam-body">
+    <main class="question-panel panel">
+      <div class="qp-head">
+        <span class="qp-index">Question <span id="q-current-num">1</span> of <span id="q-total-num">15</span></span>
+        <span class="qp-subject" id="q-subject-label">Physics</span>
+      </div>
+
+      <p class="qp-text" id="q-text">Loading question…</p>
+
+      <div class="qp-options" id="q-options"></div>
+
+      <div class="qp-actions">
+        <button id="btn-mark-review" class="btn btn--ghost">Mark for review &amp; next</button>
+        <button id="btn-clear-response" class="btn btn--ghost">Clear response</button>
+        <div class="qp-actions-spacer"></div>
+        <button id="btn-prev" class="btn btn--ghost">← Previous</button>
+        <button id="btn-save-next" class="btn btn--primary">Save &amp; next →</button>
+      </div>
+    </main>
+
+    <aside class="palette-panel panel">
+      <div class="palette-progress-track" aria-hidden="true"><div class="palette-progress-fill" id="palette-progress-fill"></div></div>
+
+      <div class="palette-summary">
+        <div class="ps-item"><span class="ps-num" id="ps-answered">0</span><span class="ps-label">Answered</span></div>
+        <div class="ps-item"><span class="ps-num" id="ps-notanswered">0</span><span class="ps-label">Not answered</span></div>
+        <div class="ps-item"><span class="ps-num" id="ps-marked">0</span><span class="ps-label">Marked</span></div>
+        <div class="ps-item"><span class="ps-num" id="ps-notvisited">15</span><span class="ps-label">Not visited</span></div>
+      </div>
+
+      <div class="palette-grid" id="palette-grid"></div>
+
+      <button id="btn-jump-unanswered" class="btn btn--ghost btn--block btn--sm">Jump to next unanswered</button>
+      <button id="btn-submit-exam" class="btn btn--danger btn--block">Submit test</button>
+    </aside>
+  </div>
+</section>
+
+<!-- Violation warning modal -->
+<div id="modal-violation" class="modal" hidden>
+  <div class="modal-card panel">
+    <p class="modal-kicker">Flagged event</p>
+    <h2 id="modal-violation-title">Full-screen exit detected</h2>
+    <p id="modal-violation-body">This has been logged to your integrity record. Return to full-screen to continue your test.</p>
+    <p class="modal-count">Flag <span id="modal-violation-count">1</span> of <span id="modal-violation-max">3</span> — the test auto-submits after the limit is reached.</p>
+    <button id="btn-resume-fullscreen" class="btn btn--primary btn--block">Return to full-screen</button>
+  </div>
+</div>
+
+<!-- Submit confirmation modal -->
+<div id="modal-submit" class="modal" hidden>
+  <div class="modal-card panel">
+    <p class="modal-kicker">Confirm submission</p>
+    <h2>Submit your test?</h2>
+    <p id="submit-summary-text">You have answered — questions. Unanswered questions score zero, incorrect answers cost marks.</p>
+    <div class="modal-actions">
+      <button id="btn-cancel-submit" class="btn btn--ghost btn--block">Go back</button>
+      <button id="btn-confirm-submit" class="btn btn--primary btn--block">Yes, submit now</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 3 — RESULT
+     ============================================================ -->
+<section id="screen-result" class="screen">
+  <div class="result-shell">
+
+    <div id="scorecard" class="scorecard panel">
+      <div class="scorecard-head">
+        <div>
+          <p class="eyebrow">Scorecard · <span id="res-exam-name">—</span></p>
+          <h1 id="res-student-name" class="result-title">—</h1>
+          <p class="result-sub" id="res-student-meta">—</p>
+        </div>
+        <div class="scorecard-brand">
+          <span class="brand-badge brand-badge--md">
+            <img src="logo1.png" alt="YCL" class="brand-badge-logo">
+            <img src="logo2.png" alt="YCL Faculty" class="brand-badge-photo">
+          </span>
+          <span class="mark-text">YCL</span>
+        </div>
+      </div>
+
+      <div class="result-top-grid">
+        <div class="gauge-block">
+          <canvas id="gauge-canvas" width="220" height="220"></canvas>
+          <div class="gauge-caption">
+            <span class="gauge-value" id="gauge-percentile">—</span>
+            <span class="gauge-label">Percentile</span>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-cell">
+            <span class="stat-value" id="stat-total-marks">—</span>
+            <span class="stat-label">Total marks</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-value" id="stat-air">—</span>
+            <span class="stat-label">Estimated AIR</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-value stat-value--green" id="stat-correct">—</span>
+            <span class="stat-label">Correct</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-value stat-value--red" id="stat-incorrect">—</span>
+            <span class="stat-label">Incorrect</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-value stat-value--muted" id="stat-unattempted">—</span>
+            <span class="stat-label">Unattempted</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-value" id="stat-accuracy">—</span>
+            <span class="stat-label">Accuracy</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="rank-note">Percentile is computed against this batch's historical test data. Estimated All-India rank is a projection based on a typical <span id="rank-pool-size">—</span>-candidate pool — treat it as an estimate, not an official figure.</p>
+
+      <div class="result-section">
+        <h3>Subject-wise performance</h3>
+        <canvas id="subject-chart" width="700" height="220"></canvas>
+      </div>
+
+      <div class="result-section">
+        <h3>Pacing — time spent per question</h3>
+        <canvas id="pacing-chart" width="700" height="180"></canvas>
+      </div>
+
+      <div class="result-section">
+        <h3>Topics to revise</h3>
+        <div id="weak-topics" class="weak-topics"></div>
+      </div>
+
+      <div class="result-section">
+        <h3>Session integrity log</h3>
+        <div class="integrity-row" id="integrity-row"></div>
+      </div>
+    </div>
+
+    <div class="result-actions">
+      <button id="btn-download-pdf" class="btn btn--primary">Download scorecard (PDF)</button>
+      <button id="btn-view-solutions" class="btn btn--ghost">View solutions &amp; answer key</button>
+      <button id="btn-print-answerkey" class="btn btn--ghost">Print answer key</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SCREEN 4 — SOLUTIONS / ANSWER KEY
+     ============================================================ -->
+<section id="screen-solutions" class="screen">
+  <div class="solutions-shell panel">
+    <div class="solutions-head">
+      <div>
+        <p class="eyebrow">Answer key &amp; explanations</p>
+        <h1 id="sol-exam-name" class="instr-title">—</h1>
+      </div>
+      <button id="btn-back-to-result" class="btn btn--ghost">← Back to scorecard</button>
+    </div>
+    <div id="solutions-list" class="solutions-list"></div>
+  </div>
+</section>
+
+<!-- Blocked re-login screen -->
+<section id="screen-blocked" class="screen">
+  <div class="login-shell">
+    <div class="login-mark">
+      <span class="brand-badge brand-badge--lg">
+        <img src="logo1.png" alt="YCL" class="brand-badge-logo">
+        <img src="logo2.png" alt="YCL Faculty" class="brand-badge-photo">
+      </span>
+      <span class="mark-text">YCL</span>
+    </div>
+    <div class="login-card panel">
+      <p class="eyebrow">Session locked</p>
+      <h1 class="login-title">This ID has already submitted</h1>
+      <p class="login-sub" id="blocked-message">A scorecard was already generated for this student ID on this device. Repeat attempts are blocked once a test is completed. If this is a mistake, ask your instructor to reset the session.</p>
+      <button id="btn-blocked-back" class="btn btn--ghost btn--block">← Back to login</button>
+    </div>
+  </div>
+</section>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
